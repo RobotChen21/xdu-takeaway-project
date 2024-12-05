@@ -14,6 +14,7 @@ import com.sky.vo.EmployeeLoginVO;
 import com.sun.org.apache.regexp.internal.RE;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,4 +103,18 @@ public class EmployeeController {
         return Result.success();
     }
 
+    @GetMapping("/{id}")
+    @ApiOperation("根据id查询员工")
+    public Result<Employee> getById(@PathVariable Integer id){
+        Employee employee =  employeeService.getById(id);
+        employee.setPassword("****");
+        return Result.success(employee);
+    }
+
+    @PutMapping
+    @ApiOperation("编辑员工信息")
+    public Result<Employee> update(@RequestBody EmployeeDTO employeeDTO){
+        employeeService.updateEmp(employeeDTO);
+        return Result.success();
+    }
 }
