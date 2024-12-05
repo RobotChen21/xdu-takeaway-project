@@ -19,4 +19,6 @@ public interface EmployeeService extends IService<Employee> {
     void creatEmployee(EmployeeDTO employeeDTO);
 
     PageResult selectPage(EmployeePageQueryDTO employeePageQueryDTO);
+
+    void changeStatus(Integer status, Long id);
 }

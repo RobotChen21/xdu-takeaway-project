@@ -93,4 +93,10 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
         return new PageResult(employeeIPage.getTotal(),employeeIPage.getRecords());
     }
 
+    @Override
+    public void changeStatus(Integer status, Long id) {
+        Employee employee = Employee.builder().id(id).status(status).updateTime(LocalDateTime.now()).build();
+        employeeMapper.updateById(employee);
+    }
+
 }
