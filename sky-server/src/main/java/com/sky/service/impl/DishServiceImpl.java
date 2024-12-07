@@ -1,14 +1,20 @@
 package com.sky.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.sky.constant.MessageConstant;
+import com.sky.constant.StatusConstant;
 import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.entity.DishFlavor;
+import com.sky.entity.SetmealDish;
+import com.sky.exception.DeletionNotAllowedException;
 import com.sky.mapper.DishFlavorMapper;
 import com.sky.mapper.DishMapper;
+import com.sky.mapper.SetmealDishMapper;
 import com.sky.result.PageResult;
 import com.sky.service.DishService;
 import com.sky.vo.DishVO;
@@ -18,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements DishService {
@@ -25,6 +32,8 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
     private DishMapper dishMapper;
     @Autowired
     private DishFlavorMapper dishFlavorMapper;
+    @Autowired
+    private SetmealDishMapper setmealDishMapper;
 
     @Transactional
     @Override
@@ -43,5 +52,28 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
         Page<DishVO> dishPage = Page.of(queryDTO.getPage(),queryDTO.getPageSize());
         IPage<DishVO> page = dishMapper.pageQuery(queryDTO.getName(),queryDTO.getCategoryId(),queryDTO.getStatus(),dishPage);
         return new PageResult(page.getTotal(),page.getRecords());
+    }
+
+    @Transactional
+    @Override
+    public void deleteBatch(List<Long> ids) {
+        for (Long id : ids) {
+            Dish dish = dishMapper.selectById(id);
+            if(Objects.equals(dish.getStatus(), StatusConstant.ENABLE)){
+                throw new DeletionNotAllowedException(dish.getName()+"为"+MessageConstant.DISH_ON_SALE);
+            }
+        }
+        for (Long id : ids) {
+            LambdaQueryWrapper<SetmealDish> setmealWrapper = new LambdaQueryWrapper<>();
+            setmealWrapper.eq(SetmealDish::getDishId,id);
+            List<SetmealDish> setmealDishList = setmealDishMapper.selectList(setmealWrapper);
+            if(setmealDishList != null && !setmealDishList.isEmpty()){
+                throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_SETMEAL);
+            }
+        }
+        LambdaQueryWrapper<DishFlavor> dishFlavorWrapper = new LambdaQueryWrapper<>();
+        dishFlavorWrapper.in(DishFlavor::getDishId,ids);
+        dishFlavorMapper.delete(dishFlavorWrapper);
+        dishMapper.deleteByIds(ids);
     }
 }
