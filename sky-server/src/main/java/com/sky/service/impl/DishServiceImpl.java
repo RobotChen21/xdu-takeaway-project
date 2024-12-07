@@ -12,6 +12,7 @@ import com.sky.entity.Dish;
 import com.sky.entity.DishFlavor;
 import com.sky.entity.SetmealDish;
 import com.sky.exception.DeletionNotAllowedException;
+import com.sky.mapper.CategoryMapper;
 import com.sky.mapper.DishFlavorMapper;
 import com.sky.mapper.DishMapper;
 import com.sky.mapper.SetmealDishMapper;
@@ -34,6 +35,8 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
     private DishFlavorMapper dishFlavorMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private CategoryMapper categoryMapper;
 
     @Transactional
     @Override
@@ -75,5 +78,34 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
         dishFlavorWrapper.in(DishFlavor::getDishId,ids);
         dishFlavorMapper.delete(dishFlavorWrapper);
         dishMapper.deleteByIds(ids);
+    }
+
+    @Override
+    public DishVO findById(Long id) {
+        Dish dish = dishMapper.selectById(id);
+        DishVO dishVO = new DishVO();
+        BeanUtils.copyProperties(dish,dishVO);
+        dishVO.setCategoryName(categoryMapper.selectById(dish.getCategoryId()).getName());
+        LambdaQueryWrapper<DishFlavor> wrapper = new LambdaQueryWrapper();
+        wrapper.eq(DishFlavor::getDishId,id);
+        List<DishFlavor> list = dishFlavorMapper.selectList(wrapper);
+        dishVO.setFlavors(list);
+        return dishVO;
+    }
+
+    @Override
+    public void updateDish(DishDTO dishDTO) {
+        Dish dish = new Dish();
+        BeanUtils.copyProperties(dishDTO,dish);
+        dishMapper.updateById(dish);
+        Long dishId = dish.getId();
+        //删除原先的
+        LambdaQueryWrapper<DishFlavor> dishFlavorWrapper = new LambdaQueryWrapper<>();
+        dishFlavorWrapper.eq(DishFlavor::getDishId,dishId);
+        dishFlavorMapper.delete(dishFlavorWrapper);
+        //再添加口味
+        List<DishFlavor> flavors = dishDTO.getFlavors();
+        flavors.forEach(dishFlavor -> dishFlavor.setDishId(dishId));
+        dishFlavorMapper.insert(flavors);
     }
 }
