@@ -16,8 +16,8 @@ public class OssConfiguration {
     public AliOssUtil aliOssUtil(AliOssProperties aliOssProperties){
         log.info("开始注入工具类{}",aliOssProperties);
          return new AliOssUtil(aliOssProperties.getEndpoint(),
-                aliOssProperties.getAccessKeyId(),
-                aliOssProperties.getAccessKeySecret(),
+                 System.getProperty("ACCESS_KEY_ID"),
+                 System.getProperty("ACCESS_KEY_SECRET"),
                 aliOssProperties.getBucketName());
     }
 }
