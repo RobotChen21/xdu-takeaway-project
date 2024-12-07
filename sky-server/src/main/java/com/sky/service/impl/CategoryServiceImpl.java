@@ -70,7 +70,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
         LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper<>();
         String name = categoryPageQueryDTO.getName();
         Integer type = categoryPageQueryDTO.getType();
-        queryWrapper.like(name != null && !name.isEmpty(),Category::getName,name)
+        queryWrapper.like(name != null,Category::getName,name)
                 .eq(type != null, Category::getType,type)
                 .orderBy(true,true,Category::getSort)
                 .orderBy(true,false,Category::getCreateTime);
