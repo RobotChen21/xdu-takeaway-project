@@ -72,12 +72,12 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     public void creatEmployee(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO, employee);
-        employee.setCreateTime(LocalDateTime.now());
-        employee.setUpdateTime(LocalDateTime.now());
+//        employee.setCreateTime(LocalDateTime.now());
+//        employee.setUpdateTime(LocalDateTime.now());
         employee.setStatus(StatusConstant.ENABLE);
         employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes()));
-        employee.setCreateUser(BaseContext.getCurrentId());
-        employee.setUpdateUser(BaseContext.getCurrentId());
+//        employee.setCreateUser(BaseContext.getCurrentId());
+//        employee.setUpdateUser(BaseContext.getCurrentId());
         employeeMapper.insert(employee);
     }
 
@@ -95,7 +95,10 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
 
     @Override
     public void changeStatus(Integer status, Long id) {
-        Employee employee = Employee.builder().id(id).status(status).updateTime(LocalDateTime.now()).build();
+        Employee employee = Employee.builder().id(id)
+                .status(status)
+//                .updateTime(LocalDateTime.now())
+                .build();
         employeeMapper.updateById(employee);
     }
 
@@ -103,8 +106,8 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     public void updateEmp(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO,employee);
-        employee.setUpdateTime(LocalDateTime.now());
-        employee.setUpdateUser(BaseContext.getCurrentId());
+//        employee.setUpdateTime(LocalDateTime.now());
+//        employee.setUpdateUser(BaseContext.getCurrentId());
         employeeMapper.updateById(employee);
     }
 
