@@ -40,4 +40,17 @@ public class SetmealController {
         setmealServicre.delete(ids);
         return Result.success();
     }
+
+    @GetMapping("/{id}")
+    @ApiOperation("根据ID查询套餐")
+    public Result findById(@PathVariable Long id){
+        return Result.success(setmealServicre.findById(id));
+    }
+
+    @PutMapping
+    @ApiOperation("修改套餐")
+    public Result update(@RequestBody SetmealDTO setmealDTO){
+        setmealServicre.updateSetmeal(setmealDTO);
+        return Result.success();
+    }
 }

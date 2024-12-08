@@ -81,6 +81,29 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         setmealMapper.deleteByIds(ids);
     }
 
+    @Override
+    public SetmealVO findById(Long id) {
+        SetmealVO setmealVO = setmealMapper.findById(id);
+        LambdaQueryWrapper<SetmealDish> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SetmealDish::getSetmealId,id);
+        setmealVO.setSetmealDishes(setmealDishMapper.selectList(wrapper));
+        return setmealVO;
+    }
 
-
+    @Transactional
+    @Override
+    public void updateSetmeal(SetmealDTO setmealDTO) {
+        Setmeal setmeal = new Setmeal();
+        BeanUtils.copyProperties(setmealDTO,setmeal);
+        setmealMapper.updateById(setmeal);
+        Long setmealId = setmealDTO.getId();
+        LambdaQueryWrapper<SetmealDish> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(SetmealDish::getSetmealId,setmealId);
+        setmealDishMapper.delete(wrapper);
+        List<SetmealDish> list = setmealDTO.getSetmealDishes();
+        for (SetmealDish setmealDish : list) {
+            setmealDish.setSetmealId(setmealId);
+        }
+        setmealDishMapper.insert(list);
+    }
 }
