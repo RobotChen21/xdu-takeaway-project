@@ -1,12 +1,16 @@
 package com.sky.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.sky.constant.MessageConstant;
+import com.sky.constant.StatusConstant;
 import com.sky.dto.SetmealDTO;
 import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.entity.Setmeal;
 import com.sky.entity.SetmealDish;
+import com.sky.exception.DeletionNotAllowedException;
 import com.sky.mapper.DishMapper;
 import com.sky.mapper.SetmealDishMapper;
 import com.sky.mapper.SetmealMapper;
@@ -20,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -54,4 +60,27 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         IPage<SetmealVO> resultPage = setmealMapper.pageQuery(name,categoryId,status,setmealPage);
         return new PageResult(resultPage.getTotal(),resultPage.getRecords());
     }
+
+    @Transactional
+    @Override
+    public void delete(List<Long> ids) {
+        List<Setmeal> setmeals = setmealMapper.selectBatchIds(ids);
+        List<Setmeal> onSaleSetmeals = setmeals.stream()
+                .filter(setmeal -> Objects.equals(setmeal.getStatus(), StatusConstant.ENABLE))
+                .collect(Collectors.toList());
+        if (!onSaleSetmeals.isEmpty()) {
+            String names = onSaleSetmeals.stream()
+                    .map(Setmeal::getName)
+                    .collect(Collectors.joining(", "));
+            throw new DeletionNotAllowedException(names + "为" + MessageConstant.DISH_ON_SALE);
+        }
+        LambdaQueryWrapper<SetmealDish> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(SetmealDish::getSetmealId,ids);
+        setmealDishMapper.delete(wrapper);
+//        lambdaUpdate().in(Setmeal::getId,ids).remove();
+        setmealMapper.deleteByIds(ids);
+    }
+
+
+
 }
