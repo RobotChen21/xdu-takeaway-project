@@ -20,4 +20,6 @@ public interface DishService extends IService<Dish> {
     DishVO findById(Long id);
 
     void updateDish(DishDTO dishDTO);
+
+    List<Dish> listByCategoryId(Long categoryId);
 }

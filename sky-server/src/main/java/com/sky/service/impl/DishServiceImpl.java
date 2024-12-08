@@ -108,4 +108,11 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
         flavors.forEach(dishFlavor -> dishFlavor.setDishId(dishId));
         dishFlavorMapper.insert(flavors);
     }
+
+    @Override
+    public List<Dish> listByCategoryId(Long categoryId) {
+        return  lambdaQuery().eq(Dish::getCategoryId,categoryId)
+                .eq(Dish::getStatus, StatusConstant.ENABLE)
+                .orderByDesc(Dish::getCreateTime).list();
+    }
 }
