@@ -1,7 +1,10 @@
 package com.sky.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sky.entity.Setmeal;
+import com.sky.vo.SetmealVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
@@ -16,4 +19,5 @@ public interface SetmealMapper extends BaseMapper<Setmeal> {
     @Select("select count(id) from setmeal where category_id = #{categoryId}")
     Integer countByCategoryId(Long id);
 
+    IPage<SetmealVO> pageQuery(String name, Integer categoryId, Integer status, Page<SetmealVO> setmealPage);
 }
