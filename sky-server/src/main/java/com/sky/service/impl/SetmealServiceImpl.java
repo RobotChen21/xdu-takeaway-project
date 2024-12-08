@@ -106,4 +106,12 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         }
         setmealDishMapper.insert(list);
     }
+
+    @Override
+    public void updateStatus(Integer status, Long id) {
+        Setmeal setmeal = new Setmeal();
+        setmeal.setStatus(status);
+        setmeal.setId(id);
+        setmealMapper.updateById(setmeal);
+    }
 }
