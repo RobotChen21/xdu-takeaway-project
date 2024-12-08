@@ -19,4 +19,6 @@ public interface SetmealServicre extends IService<Setmeal> {
     SetmealVO findById(Long id);
 
     void updateSetmeal(SetmealDTO setmealDTO);
+
+    void updateStatus(Integer status, Long id);
 }
