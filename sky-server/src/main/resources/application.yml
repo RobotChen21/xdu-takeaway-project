@@ -12,14 +12,12 @@ spring:
       url: jdbc:mysql://${sky.datasource.host}:${sky.datasource.port}/${sky.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
       username: ${sky.datasource.username}
       password: ${sky.datasource.password}
+  redis:
+    host: ${sky.redis.host}
+    port: ${sky.redis.port}
+    password: ${sky.redis.password}
+    database: ${sky.redis.database}
 
-#mybatis:
-#  #mapper配置文件
-#  mapper-locations: classpath:mapper/*.xml
-#  type-aliases-package: com.sky.entity
-#  configuration:
-#    #开启驼峰命名
-#    map-underscore-to-camel-case: true
 
 mybatis-plus:
   configuration:
@@ -48,6 +46,12 @@ sky:
     admin-ttl: 72000000
     # 设置前端传递过来的令牌名称
     admin-token-name: token
+    user-secret-key: xidian
+    user-ttl: 72000000
+    user-token-name: authentication
   alioss:
     endpoint:${sky.alioss.endpoint}
     bucket-name:${sky.alioss.bucket-name}
+  wechat:
+    appid: ${sky.wechat.appid}
+    secret: ${sky.wechat.secret}

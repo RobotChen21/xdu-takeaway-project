@@ -9,3 +9,11 @@ sky:
   alioss:
     endpoint: oss-cn-hangzhou.aliyuncs.com
     bucket-name: sky-take-cys
+  redis:
+    host: localhost
+    port: 6379
+    password: 2333
+    database: 0
+  wechat:
+    appid: wxd06af3091d383ce1
+    secret: 40c5b3dffd2d56b199a844d1165e4c5e
