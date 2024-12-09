@@ -69,4 +69,11 @@ public class DishController {
 
         return Result.success(dishService.listByCategoryId(categoryId));
     }
+
+    @PostMapping("/status/{status}")
+    @ApiOperation("修改菜品销售状态")
+    public Result updateStatus(@PathVariable Integer status,Long id){
+        dishService.updateStatus(status,id);
+        return Result.success();
+    }
 }

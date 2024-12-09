@@ -15,7 +15,8 @@ import com.sky.mapper.DishMapper;
 import com.sky.mapper.SetmealDishMapper;
 import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
-import com.sky.service.SetmealServicre;
+import com.sky.service.SetmealService;
+import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> implements SetmealServicre {
+public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> implements SetmealService {
     @Autowired
     private SetmealDishMapper setmealDishMapper;
     @Autowired
@@ -113,5 +114,17 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         setmeal.setStatus(status);
         setmeal.setId(id);
         setmealMapper.updateById(setmeal);
+    }
+
+    @Override
+    public List<Setmeal> listSetmeal(Long categoryId) {
+        return lambdaQuery().eq(Setmeal::getCategoryId,categoryId)
+                .eq(Setmeal::getStatus,StatusConstant.ENABLE)
+                .list();
+    }
+
+    @Override
+    public List<DishItemVO> getDishItemById(Long id) {
+        return setmealMapper.getDishItemBySetmealId(id);
     }
 }

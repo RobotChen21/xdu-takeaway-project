@@ -19,14 +19,17 @@ import com.sky.mapper.SetmealDishMapper;
 import com.sky.result.PageResult;
 import com.sky.service.DishService;
 import com.sky.vo.DishVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 @Service
 public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements DishService {
     @Autowired
@@ -115,4 +118,32 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
                 .eq(Dish::getStatus, StatusConstant.ENABLE)
                 .orderByDesc(Dish::getCreateTime).list();
     }
+
+    @Override
+    public List<DishVO> listWithFlavor(Long categoryId) {
+        List<Dish> dishList = lambdaQuery()
+                .eq(Dish::getStatus, StatusConstant.ENABLE)
+                .eq(Dish::getCategoryId, categoryId)
+                .list();
+        log.info("标记！！！！！！！"+dishList.toString());
+        List<DishVO> dishVOList = new ArrayList<>();
+        for (Dish dish : dishList) {
+            DishVO dishVO = new DishVO();
+            BeanUtils.copyProperties(dish,dishVO);
+            LambdaQueryWrapper<DishFlavor> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(DishFlavor::getDishId,dish.getId());
+            dishVO.setFlavors(dishFlavorMapper.selectList(wrapper));
+            dishVOList.add(dishVO);
+        }
+        log.info("标记！！！！！！！"+dishVOList);
+        return dishVOList;
+    }
+
+    @Override
+    public void updateStatus(Integer status, Long id) {
+        Dish dish = new Dish();
+        dish.setStatus(status);
+        lambdaUpdate().eq(Dish::getId,id).update(dish);
+    }
+
 }
