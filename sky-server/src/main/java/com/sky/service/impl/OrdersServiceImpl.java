@@ -2,8 +2,11 @@ package com.sky.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
+import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
 import com.sky.entity.*;
@@ -11,11 +14,14 @@ import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.mapper.*;
+import com.sky.result.PageResult;
 import com.sky.service.OrdersService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sky.utils.WeChatPayUtil;
+import com.sky.vo.OrderOverViewVO;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.OrderVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -120,4 +126,35 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
         return vo;
     }
 
+    @Override
+    public PageResult pageQuery(int page, int pageSize, Integer status) {
+        Page<Orders> ordersPage = Page.of(page,pageSize);
+        LambdaQueryWrapper<Orders> ordersWrapper = new LambdaQueryWrapper<>();
+        ordersWrapper
+                .eq(status != null,Orders::getStatus,status)
+                .orderBy(true,false,Orders::getOrderTime);
+        IPage<Orders> iPage = ordersMapper.selectPage(ordersPage,ordersWrapper);
+        List<Orders> ordersList = iPage.getRecords();
+        List<OrderVO> orderVOList= new ArrayList<>();
+        ordersList.forEach(orders -> {
+            OrderVO orderVO = new OrderVO();
+            BeanUtils.copyProperties(orders,orderVO);
+            LambdaQueryWrapper<OrderDetail> orderDetailWrapper = new LambdaQueryWrapper<>();
+            orderDetailWrapper.eq(OrderDetail::getOrderId,orders.getId());
+            orderVO.setOrderDetailList(orderDetailMapper.selectList(orderDetailWrapper));
+            orderVOList.add(orderVO);
+        });
+        return new PageResult(iPage.getTotal(),orderVOList);
+    }
+
+    @Override
+    public OrderVO showDetails(Long id) {
+        Orders orders = getById(id);
+        OrderVO orderVO = new OrderVO();
+        BeanUtils.copyProperties(orders,orderVO);
+        LambdaQueryWrapper<OrderDetail> orderDetailWrapper = new LambdaQueryWrapper<>();
+        orderDetailWrapper.eq(OrderDetail::getOrderId,orders.getId());
+        orderVO.setOrderDetailList(orderDetailMapper.selectList(orderDetailWrapper));
+        return orderVO;
+    }
 }
