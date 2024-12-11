@@ -3,6 +3,7 @@ package com.sky.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
@@ -17,6 +18,7 @@ import com.sky.mapper.*;
 import com.sky.result.PageResult;
 import com.sky.service.OrdersService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.sky.service.ShoppingCartService;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderOverViewVO;
 import com.sky.vo.OrderPaymentVO;
@@ -32,6 +34,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -54,6 +58,8 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
     private UserMapper userMapper;
     @Autowired
     private OrderDetailMapper orderDetailMapper;
+    @Autowired
+    private ShoppingCartService shoppingCartService;
     @Override
     public OrderSubmitVO submit(OrdersSubmitDTO ordersSubmitDTO) {
         AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
@@ -157,4 +163,44 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
         orderVO.setOrderDetailList(orderDetailMapper.selectList(orderDetailWrapper));
         return orderVO;
     }
+
+    @Override
+    public void cancelOrder(Long id) {
+        Orders ordersDB = getById(id);
+        if(ordersDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        if(ordersDB.getStatus() > 2){
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        Orders orders = new Orders();
+        orders.setId(id);
+        orders.setStatus(Orders.CANCELLED);
+        orders.setPayStatus(Orders.REFUND);
+        orders.setCancelReason("用户取消");
+        orders.setCancelTime(LocalDateTime.now());
+        updateById(orders);
+    }
+
+    @Override
+    public void reOrder(Long id) {
+        Orders ordersDB = getById(id);
+        if(ordersDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        LambdaQueryWrapper<OrderDetail> orderDetailWrapper = new LambdaQueryWrapper<>();
+        orderDetailWrapper.eq(OrderDetail::getOrderId,id);
+        List<OrderDetail> orderDetails = orderDetailMapper.selectList(orderDetailWrapper);
+        List<ShoppingCart> shoppingCarts = orderDetails.stream().map(orderDetail->{
+                ShoppingCart shoppingCart = new ShoppingCart();
+                BeanUtils.copyProperties(orderDetail,shoppingCart,"id");
+                shoppingCart.setUserId(BaseContext.getCurrentId());
+                shoppingCart.setCreateTime(LocalDateTime.now());
+                return shoppingCart;
+            }
+        ).collect(Collectors.toList());
+        shoppingCartService.cleanAll();
+        shoppingCartMapper.insert(shoppingCarts);
+    }
+
 }

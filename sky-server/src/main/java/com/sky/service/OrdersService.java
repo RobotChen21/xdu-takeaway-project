@@ -26,4 +26,8 @@ public interface OrdersService extends IService<Orders> {
     PageResult pageQuery(int page, int pageSize, Integer status);
 
     OrderVO showDetails(Long id);
+
+    void cancelOrder(Long id);
+
+    void reOrder(Long id);
 }
