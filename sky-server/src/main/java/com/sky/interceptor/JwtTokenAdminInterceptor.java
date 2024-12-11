@@ -60,4 +60,9 @@ public class JwtTokenAdminInterceptor implements HandlerInterceptor {
             return false;
         }
     }
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        // 清除 ThreadLocal 中的值
+        BaseContext.removeCurrentId();
+    }
 }
