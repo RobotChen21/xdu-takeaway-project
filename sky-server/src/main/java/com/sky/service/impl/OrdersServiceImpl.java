@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -61,6 +62,7 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
     @Autowired
     private ShoppingCartService shoppingCartService;
     @Override
+    @Transactional
     public OrderSubmitVO submit(OrdersSubmitDTO ordersSubmitDTO) {
         AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
         //处理业务异常
@@ -99,6 +101,7 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
             orderDetails.add(orderDetail);
         });
         orderDetailMapper.insert(orderDetails);
+        shoppingCartService.cleanAll();
         //封装VO数据给前端返回
         return OrderSubmitVO
                 .builder()
@@ -120,15 +123,13 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
         jsonObject.put("code", "ORDERPAID");
         OrderPaymentVO vo = jsonObject.toJavaObject(OrderPaymentVO.class);
         // 根据订单id更新订单的状态、支付方式、支付状态、结账时间
-        Orders orders = Orders.builder()
-                .status(Orders.TO_BE_CONFIRMED)
-                .payStatus(Orders.PAID)
-                .checkoutTime(LocalDateTime.now())
-                .build();
         lambdaUpdate()
-                .eq(Orders::getNumber,ordersPaymentDTO.getOrderNumber())
-                .eq(Orders::getUserId,BaseContext.getCurrentId())
-                .update(orders);
+                .eq(Orders::getNumber, ordersPaymentDTO.getOrderNumber())
+                .eq(Orders::getUserId, BaseContext.getCurrentId())
+                .set(Orders::getStatus, Orders.TO_BE_CONFIRMED)
+                .set(Orders::getPayStatus, Orders.PAID)
+                .set(Orders::getCheckoutTime, LocalDateTime.now())
+                .update();
         return vo;
     }
 
@@ -201,6 +202,48 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
         ).collect(Collectors.toList());
         shoppingCartService.cleanAll();
         shoppingCartMapper.insert(shoppingCarts);
+    }
+
+    @Override
+    public PageResult searchOrder(OrdersPageQueryDTO ordersPageQueryDTO) {
+        Page<Orders> ordersPage = Page.of(ordersPageQueryDTO.getPage(),ordersPageQueryDTO.getPageSize());
+        String number = ordersPageQueryDTO.getNumber();
+        String phone = ordersPageQueryDTO.getPhone();
+        Integer status = ordersPageQueryDTO.getStatus();
+        LocalDateTime beginTime = ordersPageQueryDTO.getBeginTime();
+        LocalDateTime endTime = ordersPageQueryDTO.getEndTime();
+        Long userId = ordersPageQueryDTO.getUserId();
+        // 构造 LambdaQueryWrapper 条件查询
+        LambdaQueryWrapper<Orders> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper
+                .eq(number != null && !number.isEmpty(), Orders::getNumber, number)        // 按订单号查询
+                .eq(phone != null && !phone.isEmpty(), Orders::getPhone, phone)           // 按手机号查询
+                .eq(status != null, Orders::getStatus, status)                            // 按状态查询
+                .eq(userId != null, Orders::getUserId, userId)                            // 按用户ID查询
+                .ge(beginTime != null, Orders::getOrderTime, beginTime)                   // 起始时间
+                .le(endTime != null, Orders::getOrderTime, endTime)                       // 结束时间
+                .orderByDesc(Orders::getOrderTime);
+        Page<Orders> page = page(ordersPage, queryWrapper);
+        List<Orders> ordersList = page.getRecords();
+        List<OrderVO> orderVOList = new ArrayList<>();
+        if(ordersList != null){
+            orderVOList = ordersList.stream().map(orders->
+            {
+                OrderVO orderVO = new OrderVO();
+                BeanUtils.copyProperties(orders,orderVO);
+                Long orderId = orders.getId();
+                LambdaQueryWrapper<OrderDetail> orderDetailWrapper = new LambdaQueryWrapper<>();
+                orderDetailWrapper.eq(OrderDetail::getOrderId,orderId);
+                String orderDishes = orderDetailMapper.selectList(orderDetailWrapper)
+                    .stream()
+                    .map(orderDetail -> orderDetail.getName() + "*" + orderDetail.getNumber())
+                    .collect(Collectors.joining(";"));
+                orderVO.setOrderDishes(orderDishes);
+                return orderVO;
+            }
+            ).collect(Collectors.toList());
+        }
+        return new PageResult(page.getTotal(),orderVOList);
     }
 
 }

@@ -1,6 +1,7 @@
 package com.sky.service;
 
 import com.sky.dto.OrdersDTO;
+import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
 import com.sky.entity.Orders;
@@ -30,4 +31,6 @@ public interface OrdersService extends IService<Orders> {
     void cancelOrder(Long id);
 
     void reOrder(Long id);
+
+    PageResult searchOrder(OrdersPageQueryDTO ordersPageQueryDTO);
 }
