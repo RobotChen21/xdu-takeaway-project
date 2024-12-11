@@ -66,6 +66,7 @@ public class ShoppingCartServiceImpl extends ServiceImpl<ShoppingCartMapper, Sho
         }else{
             Setmeal setmeal = setmealMapper.selectById(setmealId);
             shoppingCart.setSetmealId(setmealId);
+            shoppingCart.setImage(setmeal.getImage());
             amount = setmeal.getPrice();
             shoppingCart.setName(setmeal.getName());
         }
