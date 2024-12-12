@@ -1,5 +1,6 @@
 package com.sky.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -22,6 +23,7 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,10 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -58,6 +57,8 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
     private OrderDetailMapper orderDetailMapper;
     @Autowired
     private ShoppingCartService shoppingCartService;
+    @Autowired
+    private WebSocketServer webSocketServer;
     @Override
     @Transactional
     public OrderSubmitVO submit(OrdersSubmitDTO ordersSubmitDTO) {
@@ -120,16 +121,37 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
         jsonObject.put("code", "ORDERPAID");
         OrderPaymentVO vo = jsonObject.toJavaObject(OrderPaymentVO.class);
         // 根据订单id更新订单的状态、支付方式、支付状态、结账时间
+        String orderNumber = ordersPaymentDTO.getOrderNumber();
         lambdaUpdate()
-                .eq(Orders::getNumber, ordersPaymentDTO.getOrderNumber())
+                .eq(Orders::getNumber, orderNumber)
                 .eq(Orders::getUserId, BaseContext.getCurrentId())
                 .set(Orders::getStatus, Orders.TO_BE_CONFIRMED)
                 .set(Orders::getPayStatus, Orders.PAID)
                 .set(Orders::getCheckoutTime, LocalDateTime.now())
                 .update();
+        Long id = lambdaQuery().eq(Orders::getNumber, orderNumber).one().getId();
+        Map<String,Object> map = new HashMap<>();
+        map.put("type",1);
+        map.put("orderId",id);
+        map.put("content","订单号:" + orderNumber);
+        String jsonString = JSON.toJSONString(map);
+        webSocketServer.sendToAllClient(jsonString);
         return vo;
     }
 
+
+    @Override
+    public void reminder(Long id) {
+        Orders orderDB = getById(id);
+        if(orderDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("type",2);
+        jsonObject.put("orderId",id);
+        jsonObject.put("content","订单号" + orderDB.getNumber());
+        webSocketServer.sendToAllClient(jsonObject.toJSONString());
+    }
     @Override
     public PageResult pageQuery(int page, int pageSize, Integer status) {
         Page<Orders> ordersPage = Page.of(page,pageSize);
