@@ -55,3 +55,7 @@ sky:
   wechat:
     appid: ${sky.wechat.appid}
     secret: ${sky.wechat.secret}
+
+jasypt:
+  encryptor:
+    password: xidian666

@@ -35,11 +35,6 @@
     </properties>
     <dependencyManagement>
         <dependencies>
-<!--            <dependency>-->
-<!--                <groupId>org.mybatis.spring.boot</groupId>-->
-<!--                <artifactId>mybatis-spring-boot-starter</artifactId>-->
-<!--                <version>${mybatis.spring}</version>-->
-<!--            </dependency>-->
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-boot-starter</artifactId>
@@ -75,12 +70,6 @@
                 <artifactId>jasypt-spring-boot-starter</artifactId>
                 <version>${jasypt}</version>
             </dependency>
-
-<!--            <dependency>-->
-<!--                <groupId>com.github.pagehelper</groupId>-->
-<!--                <artifactId>pagehelper-spring-boot-starter</artifactId>-->
-<!--                <version>${pagehelper}</version>-->
-<!--            </dependency>-->
 
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
