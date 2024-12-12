@@ -2,14 +2,13 @@ package com.sky.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersPageQueryDTO;
-import com.sky.dto.OrdersPaymentDTO;
-import com.sky.dto.OrdersSubmitDTO;
+import com.sky.dto.*;
 import com.sky.entity.*;
 import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
@@ -19,9 +18,8 @@ import com.sky.result.PageResult;
 import com.sky.service.OrdersService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sky.service.ShoppingCartService;
-import com.sky.utils.WeChatPayUtil;
-import com.sky.vo.OrderOverViewVO;
 import com.sky.vo.OrderPaymentVO;
+import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import lombok.extern.slf4j.Slf4j;
@@ -29,13 +27,12 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -167,20 +164,7 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
 
     @Override
     public void cancelOrder(Long id) {
-        Orders ordersDB = getById(id);
-        if(ordersDB == null) {
-            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
-        }
-        if(ordersDB.getStatus() > 2){
-            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
-        }
-        Orders orders = new Orders();
-        orders.setId(id);
-        orders.setStatus(Orders.CANCELLED);
-        orders.setPayStatus(Orders.REFUND);
-        orders.setCancelReason("用户取消");
-        orders.setCancelTime(LocalDateTime.now());
-        updateById(orders);
+        cancelMethod("用户取消",id);
     }
 
     @Override
@@ -246,4 +230,96 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
         return new PageResult(page.getTotal(),orderVOList);
     }
 
+    @Override
+    public void cancelOrder(String cancelReason, Long id) {
+        cancelMethod(cancelReason,id);
+    }
+
+    @Override
+    public void rejectOrder(OrdersRejectionDTO ordersRejectionDTO) {
+        Long orderId = ordersRejectionDTO.getId();
+        Orders orderDB = getById(orderId);
+        if(orderDB == null || !Objects.equals(orderDB.getStatus(), Orders.TO_BE_CONFIRMED)){
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        Orders orders = new Orders();
+        if(Objects.equals(orderDB.getPayStatus(), Orders.PAID)){
+            orders.setPayStatus(Orders.REFUND);
+        }
+        orders.setId(orderId);
+        orders.setRejectionReason(orders.getRejectionReason());
+        orders.setStatus(Orders.CANCELLED);
+        orders.setCancelTime(LocalDateTime.now());
+        updateById(orders);
+    }
+
+    @Override
+    public void receiveOrder(Long id) {
+        updateOrderStatus(id, Orders.TO_BE_CONFIRMED, Orders.CONFIRMED, null);
+    }
+
+    @Override
+    public void deliverOrder(Long id) {
+        updateOrderStatus(id, Orders.CONFIRMED, Orders.DELIVERY_IN_PROGRESS, null);
+    }
+
+
+    @Override
+    public void completeOrder(Long id) {
+        updateOrderStatus(id, Orders.DELIVERY_IN_PROGRESS, Orders.COMPLETED, LocalDateTime.now());
+    }
+
+    @Override
+    public OrderStatisticsVO showStatistics() {
+        // 获取所有的订单状态
+        QueryWrapper<Orders> wrapper = Wrappers.query();
+        wrapper.select("status", "COUNT(*) as count")
+                .groupBy("status");
+        List<Map<String, Object>> results = ordersMapper.selectMaps(wrapper);
+        OrderStatisticsVO orderStatisticsVO = new OrderStatisticsVO();
+        for (Map<String, Object> map : results) {
+            Integer status = (Integer) map.get("status");
+            Long count = (Long) map.get("count");
+            if (status.equals(Orders.TO_BE_CONFIRMED)) {
+                orderStatisticsVO.setToBeConfirmed(count.intValue());
+            } else if (status.equals(Orders.CONFIRMED)) {
+                orderStatisticsVO.setConfirmed(count.intValue());
+            } else if (status.equals(Orders.DELIVERY_IN_PROGRESS)) {
+                orderStatisticsVO.setDeliveryInProgress(count.intValue());
+            }
+        }
+        return orderStatisticsVO;
+    }
+
+    private void cancelMethod(String reason, Long id) {
+        Orders ordersDB = getById(id);
+        if(ordersDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        if(ordersDB.getStatus() > 2){
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        Orders orders = new Orders();
+        orders.setId(id);
+        orders.setStatus(Orders.CANCELLED);
+        if("用户取消".equals(reason)){
+            orders.setPayStatus(Orders.REFUND);
+        }
+        orders.setCancelReason(reason);
+        orders.setCancelTime(LocalDateTime.now());
+        updateById(orders);
+    }
+    private void updateOrderStatus(Long id, Integer expectedStatus, Integer newStatus, LocalDateTime deliveryTime) {
+        Orders ordersDB = getById(id);
+        if (ordersDB == null || !Objects.equals(ordersDB.getStatus(), expectedStatus)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        Orders orders = new Orders();
+        orders.setId(id);
+        orders.setStatus(newStatus);
+        if (deliveryTime != null) {
+            orders.setDeliveryTime(deliveryTime);
+        }
+        updateById(orders);
+    }
 }
