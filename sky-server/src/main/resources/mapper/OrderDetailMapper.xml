@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.sky.mapper.OrderDetailMapper">
-
+    <select id="getTop10" resultType="java.util.Map">
+        select od.name as dish_name,sum(od.number) as total_sales
+        from order_detail od left join orders o
+        on od.order_id = o.id
+        where o.status = 5
+        and DATE(o.order_time) between #{begin} and #{end}
+        group by od.name
+        order by total_sales DESC
+        limit 10
+    </select>
 </mapper>
