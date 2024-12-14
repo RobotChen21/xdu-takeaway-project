@@ -10,6 +10,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.Map;
+
 @Mapper
 public interface DishMapper extends BaseMapper<Dish> {
 
@@ -23,4 +25,6 @@ public interface DishMapper extends BaseMapper<Dish> {
 
 
     IPage<DishVO> pageQuery(String name,Integer categoryId,Integer status,Page<DishVO> dishPage);
+
+    Integer countByMap(Map map);
 }
