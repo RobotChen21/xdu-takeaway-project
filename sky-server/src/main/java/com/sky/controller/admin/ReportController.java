@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
 
 @RestController
@@ -47,5 +49,11 @@ public class ReportController {
     @ApiOperation("热销前10菜品统计")
     public Result<SalesTop10ReportVO> popularDish(@DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,@DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end){
         return Result.success(reportService.popularDish(begin,end));
+    }
+
+    @GetMapping("/export")
+    @ApiOperation("到处EXCEL表格")
+    public void export(HttpServletResponse httpServletResponse){
+        reportService.exportBusinessData(httpServletResponse);
     }
 }
